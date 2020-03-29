@@ -1,0 +1,16 @@
+---
+- name: Download foo.conf
+  get_url:
+    url: https://download.gocd.org/gocd.repo
+    dest: /etc/yum.repos.d/gocd.repo
+    mode: '0440'
+
+- name: install go server
+  yum: 
+    name: go-server
+    state: latest 
+
+- name: start go-server
+  service:
+      name: go-server
+      state: started

@@ -1,0 +1,92 @@
+---
+- name: upgrade all packages
+  yum:
+    name: '*'
+    state: latest
+
+- name: instal wget
+  yum:
+    name: wget
+    state: latest
+
+- name: instal java
+  yum:
+    name: java-1.8.0-openjdk.x86_64
+    state: present
+
+- name: Creates directory
+  file:
+    path: /app
+    state: directory
+
+- name: Download foo.conf
+  get_url:
+    url: https://download.sonatype.com/nexus/3/latest-unix.tar.gz
+    dest: /app/nexus.tar.gz
+    mode: '0440'
+
+- name: Unarchive a file that is already on the remote machine
+  unarchive:
+    src: /app/nexus.tar.gz
+    dest: /app/
+    remote_src: yes
+
+- name: Unarchive a file that is already on the remote machine
+  copy: 
+    src: /app/nexus-3.22.0-02
+    dest: /app/nexus
+    remote_src: yes
+
+- name: move every thing from 023 to nexus
+  shell: "mv /app/nexus/nexus-3.22.0-02/* /app/nexus"
+
+- name: Add the user 'nexus' with a specific uid and a primary group of 'nexus'
+  user:
+    name: nexus
+    comment: nexusAccount
+
+- name: Recursively change ownership of a directory
+  file:
+    path: /app/nexus
+    state: directory
+    recurse: yes
+    owner: nexus
+    group: nexus
+
+- name: changer ownership
+  shell: "chown -R nexus:nexus /app/nexus/bin"
+
+- name: configure  /app/nexus/bin/nexus.rc
+  lineinfile:
+    path: /app/nexus/bin/nexus.rc
+    line: run_as_user="nexus"
+
+- name: configure /etc/systemd/system/nexus.service
+  blockinfile:
+      path: /etc/systemd/system/nexus.service
+      create: yes
+      block: |
+        [Unit]
+        Description=nexus service
+        After=network.target
+        
+        [Service]
+        Type=forking
+        LimitNOFILE=65536
+        User=nexus
+        Group=nexus
+        ExecStart=/app/nexus/bin/nexus start
+        ExecStop=/app/nexus/bin/nexus stop
+        User=nexus
+        Restart=on-abort
+        
+        [Install]
+        WantedBy=multi-user.target
+
+- name: chkconfig on
+  shell: chkconfig nexus on
+
+- name: start nexus
+  service:
+      name: nexus
+      state: started

@@ -1,0 +1,7 @@
+---
+- hosts: ansibleLab
+  remote_user: ec2-user
+  become: yes
+  roles:
+    - goCdServer
+    - goCdAgent
